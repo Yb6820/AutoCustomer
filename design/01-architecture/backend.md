@@ -16,7 +16,7 @@
 | 异步任务 | Celery 5 + Redis（broker/backend） | 5.3+ | 向量化/统计/超时扫描等离线流水线 |
 | 向量库 | pymilvus | 2.4+ | Milvus SDK |
 | HTTP 客户端 | httpx（AsyncClient） | 0.27+ | 调 LLM/Embedding/Rerank，支持流式 |
-| 认证 | PyJWT + passlib[argon2] | | JWT 双 Token + argon2id 密码哈希 |
+| 认证 | PyJWT + argon2-cffi | | JWT 双 Token + argon2id 密码哈希；直用 argon2-cffi（passlib 1.7.4 自 2020 停更，且依赖 Python 3.13 已移除的 `crypt` 模块） |
 | 日志 | structlog | | 结构化 JSON，request_id 贯穿 |
 | 追踪/指标 | OpenTelemetry SDK + Prometheus | | OTLP 导出 |
 | 测试 | pytest + pytest-asyncio + httpx | | 单测/集成/E2E 分层 |
@@ -60,7 +60,7 @@ backend/
 │  │     ├─ auth.py           # 登录/刷新/登出/2FA
 │  │     ├─ users.py  roles.py  permissions.py  menus.py  depts.py
 │  │     ├─ chat.py           # REST 会话管理
-│  │     ├─ chat_stream.py    # SSE 流式对话 + WebSocket 端点
+│  │     ├─ chat_stream.py    # SSE 流式对话 + WebSocket 端点 + stream-ticket 换票
 │  │     ├─ kb.py             # 分类/文档/分片/导入任务
 │  │     ├─ tickets.py        # 工单分配/回复/流转
 │  │     ├─ reports.py        # 统计看板/导出
@@ -114,7 +114,12 @@ async def publish_document(
 ### 4.2 流式对话（SSE 为主，WS 备用）
 
 - **SSE** `GET /api/v1/chat/stream`：`StreamingResponse`，httpx 异步迭代 LLM token → `yield f"data: {json}\n\n"`，前端打字机效果；断线用 `Last-Event-ID` 续传（Redis 暂存最近 N 条）。
-- **WebSocket** `/api/v1/ws/chat`：需要客户端上行打断/心跳的场景；消息信封 `{type, seq, payload}`。
+- **SSE 鉴权（ticket 换票）**：浏览器 `EventSource` **无法携带 `Authorization` header**，流式端点不走 JWT header：
+  - `POST /api/v1/chat/stream-ticket`（常规 JWT header 鉴权，body `{session_id}`）→ 签发一次性 ticket（`secrets.token_urlsafe` 256bit，Redis `sse:ticket:{t}` TTL 30s，值绑定 user_id + session_id，校验即删）；
+  - `GET /api/v1/chat/stream?ticket=...` 凭 ticket 建流：短时效 + 单次使用，泄漏窗口极小；
+  - 断线重连不依赖 EventSource 自动重连（ticket 已消耗）：前端 `onerror` 重新换票，携 `last_event_id` 查询参数重建连接；后端 `Last-Event-ID` 同时接受 header 与 query 两种来源；
+  - 备选方案 fetch + ReadableStream 可带 header 直连，但需自实现重连与打字机缓冲，不作主方案。
+- **WebSocket** `/api/v1/ws/chat`：需要客户端上行打断/心跳的场景；消息信封 `{type, seq, payload}`；浏览器 WebSocket 同样无法自定义 header，握手前用同一 ticket 机制换取连接。
 - LLM 调用超时 30s 熔断，失败自动降级备用 Provider，再失败回兜底模板 + 转人工卡片。
 
 ### 4.3 RAG 编排（rag_service.py，可被 chat/搜索复用）
@@ -173,4 +178,5 @@ query → 查询改写(LLM，可选) → Milvus topK=20(cosine, filter status=pu
 
 | 日期 | 变更 |
 |---|---|
+| 2026-08-20 | 可行性评审修正：认证库换为 argon2-cffi（passlib 停更且依赖已移除的 crypt 模块）；新增 SSE/WS ticket 换票鉴权设计（EventSource/WebSocket 无法携带 Authorization header） |
 | 2026-08-19 | 初版：确定 Python + FastAPI 技术栈、五层架构、目录结构、SSE 流式与 RAG 编排方案 |

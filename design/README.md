@@ -86,4 +86,5 @@ design/
 
 | 日期 | 变更 | 影响文档 |
 |---|---|---|
+| 2026-08-20 | 可行性评审修正：SSE/WS ticket 换票鉴权、argon2-cffi 替换 passlib、Milvus 增量水位线对账 + 状态映射、ER 图去除 chat_message→chat_retrieval_log 重复边 | 01/02/03 全部 |
 | 2026-08-19 | v1 初版：FastAPI 后端架构、MySQL 29 表 ER + Milvus 双集合、丰富 RBAC（10 角色）设计全部落盘 | 全部 |

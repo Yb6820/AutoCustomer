@@ -57,7 +57,7 @@ apps/admin-console/
 | 场景 | 协议 | 要点 |
 |---|---|---|
 | 常规 CRUD | axios（@auto/api 统一封装） | 拦截器：注入 JWT / 401 静默刷新 / 统一错误 toast |
-| 流式对话 | **SSE（EventSource）** | `data:` 帧 `{delta, done, msg_id}`；断线 Last-Event-ID 续传 |
+| 流式对话 | **SSE（EventSource）** | `data:` 帧 `{delta, done, msg_id}`；鉴权走一次性 ticket：先 `POST /chat/stream-ticket`（JWT header）换票，再带 `?ticket=` 建流——EventSource 无法携带 Authorization header；断线由 `onerror` 重新换票 + `last_event_id` 参数重建（不依赖自动重连） |
 | 坐席实时工单 | WebSocket | 心跳 30s，指数退避重连，消息信封 `{type, seq, payload}` |
 
 ## 6. 质量门禁
@@ -71,4 +71,5 @@ apps/admin-console/
 
 | 日期 | 变更 |
 |---|---|
+| 2026-08-20 | 可行性评审修正：流式对话补充 ticket 换票鉴权与断线重连约定 |
 | 2026-08-19 | 初版：双工程 monorepo、动态路由权限、SSE/WS 协议约定 |
