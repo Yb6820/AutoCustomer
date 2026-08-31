@@ -1,0 +1,26 @@
+{
+  "name": "autocustomer-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AutoCustomer 电商智能客服机器人前端（双工程 monorepo）",
+  "scripts": {
+    "dev:customer": "pnpm --filter @auto/customer-chat dev",
+    "dev:admin": "pnpm --filter @auto/admin-console dev",
+    "build:customer": "pnpm --filter @auto/customer-chat build",
+    "build:admin": "pnpm --filter @auto/admin-console build",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vue-tsc": "^2.0.29"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.5.2",
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "vue-demi"]
+  }
+}
