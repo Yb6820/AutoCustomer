@@ -58,7 +58,7 @@ def main():
                   color=C["ink3"], lw=1.5, style="-|>", ms=12, z=4)
 
     # 幂等与一致性标注
-    ax.text(50, sy - 2.2, "幂等：chunk_id 主键 upsert 覆盖 · 事务外异步（最终一致）· 失败重试入死信队列 · 校验任务 count(MySQL chunk) == count(Milvus)",
+    ax.text(50, sy - 2.2, "幂等：chunk_id 主键 upsert 覆盖 · 事务外异步（最终一致）· 失败重试入死信队列 · 增量水位线对账（全量 count 仅每日一次）",
             ha="center", va="center", fontsize=7.6, color=C["ink2"], zorder=5,
             bbox=dict(boxstyle="round,pad=0.35", fc=C["bg"], ec=C["border"]))
 
@@ -70,7 +70,8 @@ def main():
         ("doc_id", "INT64 · 分区键 partition key"),
         ("category_id", "INT64 · 标量过滤"),
         ("embedding", "FLOAT_VECTOR · dim 768/1024/1536"),
-        ("status", "INT8 · published / offline"),
+        ("status", "INT8 · 1=published / 2=offline"),
+        ("状态映射", "kb_chunk active→1 · archived→2"),
         ("created_at", "INT64 · 毫秒时间戳"),
     ], fs=7.8, row_h=2.9)
 

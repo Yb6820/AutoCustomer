@@ -338,7 +338,7 @@ id / ticket_id / from_agent_id / to_agent_id / action(assign/transfer/claim/esca
 | doc_id | INT64 | **partition key**（默认 8 分区，按文档裁剪扫描） |
 | category_id | INT64 | 标量过滤（按分类检索） |
 | embedding | FLOAT_VECTOR | dim 由 Embedding 模型决定（768/1024/1536），**同集合不可混 dim** |
-| status | INT8 | published/offline，检索表达式过滤 |
+| status | INT8 | 1=published（可检索） 2=offline（检索表达式过滤 `status == 1`）；与 MySQL `kb_chunk.status` 映射：active→1、archived→2 |
 | created_at | INT64 | 毫秒时间戳 |
 
 ### 9.3 索引与检索参数
@@ -360,7 +360,8 @@ id / ticket_id / from_agent_id / to_agent_id / action(assign/transfer/claim/esca
 
 - **写入**：批量 64/批；失败重试 3 次入死信队列，`embedding_status=failed` 可手工重跑
 - **更新**：文档新版本 → `delete(expr="doc_id in [...]")` + 重新写入，版本号乐观锁防并发
-- **对账**：Celery Beat 每小时校验 `count(MySQL active chunk) == count(Milvus published)`，不一致告警
+- **状态映射**：同步任务统一转换 `kb_chunk.status`（1=active / 2=archived）→ Milvus `status`（1=published / 2=offline）；文档下线/归档时按映射改写 Milvus 标量，检索表达式统一过滤 `status == 1`
+- **对账（增量水位线，避免全量 count 慢查询）**：Redis 维护水位线 `milvus:reconcile:watermark`（已对账最大 chunk_id）；Celery Beat 每小时仅校验增量区间——MySQL `count(id > 水位线 AND embedding_status = done)` vs Milvus `query(expr="chunk_id > 水位线")` 计数，一致则前移水位线；全量 `count()` 对账仅在每日凌晨 / 部署后首次 / 人工触发时执行；不一致告警并自动补偿（缺失 chunk 重新入队向量化）
 - **重建**：新建 `kb_chunk_vec_v2` → 双写 → **alias 切换** → 删除旧集合，全程无停服
 - **降级**：Milvus 不可用时自动切 MySQL 全文索引（ngram）关键词检索兜底
 
@@ -378,4 +379,5 @@ id / ticket_id / from_agent_id / to_agent_id / action(assign/transfer/claim/esca
 
 | 日期 | 变更 | 关联 |
 |---|---|---|
+| 2026-08-20 | 可行性评审修正：对账改为增量水位线（全量 count 仅每日一次）；补充 MySQL↔Milvus 状态映射规则（active→published、archived→offline） | ER 图去重边、Milvus 图 v2 |
 | 2026-08-19 | 初版：29 表 / 6 域 + Milvus 双集合设计 | ER 图 v1 |

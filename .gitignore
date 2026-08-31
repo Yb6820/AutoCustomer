@@ -1,0 +1,24 @@
+# Tooling artifacts (Trae / pnpm)
+.trae-html-share-packages/
+.pnpm-store/
+
+# Node / frontend (详见 frontend/.gitignore)
+node_modules/
+dist/
+
+# Python (详见 backend/.gitignore)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 环境变量
+.env
+.env.*
+!.env.example
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+.DS_Store
+*.log

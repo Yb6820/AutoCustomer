@@ -58,7 +58,7 @@ def main():
         ("异步任务", "Celery + Redis"),
         ("向量库", "pymilvus"),
         ("HTTP 客户端", "httpx (LLM/Embedding)"),
-        ("认证", "PyJWT · passlib[argon2]"),
+        ("认证", "PyJWT · argon2-cffi"),
         ("可观测", "structlog · OTel SDK"),
         ("测试", "pytest · pytest-asyncio"),
     ]
@@ -156,7 +156,7 @@ def main():
             fontweight="bold", color=C["ink"], zorder=5)
     steps = [
         ("① WS/SSE 连接", "网关 → Uvicorn", C["ink2"]),
-        ("② 中间件链", "RequestID → 限流 → 鉴权", C["ink2"]),
+        ("② 中间件链", "RequestID → 限流 → JWT/ticket 鉴权", C["ink2"]),
         ("③ 依赖注入", "get_db·get_current_user·require_perm", "#22A5F7"),
         ("④ ChatService", "上下文组装 + Query 改写", "#22A5F7"),
         ("⑤ 领域策略", "阈值判定·命中/未命中分支", C["brand"]),

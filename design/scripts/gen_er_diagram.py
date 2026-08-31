@@ -320,7 +320,6 @@ RELATIONS = [
     ("sys_user", "b", "agent_profile", "t", "1:1", "cross"),
     ("sys_user", "r", "kb_document", "l", "创建人 1:N", "cross"),
     ("chat_session", "r", "human_ticket", "l", "1:N", "cross"),
-    ("chat_message", "r", "chat_retrieval_log", "l", "检索引用", "cross"),
 ]
 
 
